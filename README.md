@@ -139,63 +139,78 @@ Key steps summary:
    print("TFLite runtime ready")
    ```
 
-## 7. Setup Systemd logging Service
-Setup as a Systemd Service
+Here are the two sections in Markdown form—just copy & paste them into your README:
+
+## 8. Setup as a Systemd Service
 
 To ensure your logging script runs on boot and restarts if it crashes, create a systemd service:
 
-Create the service file
+1. **Create the service file**  
+   ```bash
+   sudo nano /etc/systemd/system/logdata.service
+````
 
-sudo nano /etc/systemd/system/logdata.service
+2. **Paste the following contents**:
 
-Paste the following contents:
+   ```ini
+   [Unit]
+   Description=Environment Sensor Logging Service
+   After=network.target
 
-[Unit]
-Description=Environment Sensor Logging Service
-After=network.target
+   [Service]
+   ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/modifiedlogger.py
+   Restart=always
+   User=pi
+   WorkingDirectory=/home/pi/environmentsensor/scripts
+   Environment=PYTHONUNBUFFERED=1
 
-[Service]
-ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/modifiedlogger.py
-Restart=always
-User=pi
-WorkingDirectory=/home/pi/environmentsensor/scripts
-Environment=PYTHONUNBUFFERED=1
+   [Install]
+   WantedBy=multi-user.target
+   ```
+3. **Save and exit** (`Ctrl+O`, `Enter`, `Ctrl+X`).
+4. **Reload systemd** to pick up the new unit:
 
-[Install]
-WantedBy=multi-user.target
+   ```bash
+   sudo systemctl daemon-reload
+   ```
+5. **Enable and start the service**:
 
-Save and exit (Ctrl+O, Enter, Ctrl+X).
+   ```bash
+   sudo systemctl enable logdata.service
+   sudo systemctl start logdata.service
+   ```
+6. **Verify it's running**:
 
-Reload systemd to pick up the new unit:
+   ```bash
+   sudo systemctl status logdata.service
+   ```
+7. **View live logs**:
 
-sudo systemctl daemon-reload
+   ```bash
+   journalctl -u logdata.service -f
+   ```
 
-Enable and start the service:
+## 9. Setup as a Cron Job
 
-sudo systemctl enable logdata.service
-sudo systemctl start logdata.service
+If you prefer running the inference script on a schedule (e.g., every 5 minutes), use cron:
 
-Verify it's running:
+1. **Edit the crontab** for the `pi` user:
 
-sudo systemctl status logdata.service
+   ```bash
+   crontab -e
+   ```
+2. **Add this line** to run the script every 5 minutes and append output to your log:
 
-View live logs:
+   ```cron
+   */5 * * * * /home/pi/environmentsensor/scripts/record-infer-noise-upload.py >> /home/pi/environmentsensor/logs/record-infer.log 2>&1
+   ```
+3. **Save and exit** (`Ctrl+O`, `Enter`, `Ctrl+X`).
+4. **Verify your crontab entries**:
 
-journalctl -u logdata.service -f
+   ```bash
+   crontab -l
+   ```
 
-## 8. Setup cron job for Audio Capture & Inference
-
-If you prefer running the inference script on a schedule instead of (or alongside) a systemd service, you can use cron:
-
-Edit the crontab for the pi user:
-
-crontab -e
-
-Add the following line to run the script every 5 minutes and log output:
-
-*/5 * * * * /home/pi/environmentsensor/scripts/record-infer-noise-upload.py >> /home/pi/environmentsensor/logs/record-infer.log 2>&1
-
-Save and exit (Ctrl+O, Enter, Ctrl+X).
-
-Verify your crontab entries:
-
+```
+```
+````markdown
