@@ -25,7 +25,7 @@ By the end, your Raspberry Pi will collect environmental and acoustic data, proc
 7. [I²S MEMS Microphone Test](#i%C2%B2s-mems-microphone-test)  
 8. [Setup as a Systemd Service](#setup-as-a-systemd-service)  
 9. [Setup as a Cron Job (Optional)](#setup-as-a-cron-job-optional)  
-10. [Recommended Repo Structure](#recommended-repo-structure)  
+10. [Repo Structure](#recommended-repo-structure)  
 
 ---
 
@@ -239,7 +239,7 @@ crontab -l
 
 ---
 
-## 10. Recommended Repo Structure
+## 10. Repo Structure
 
 ```
 Sunbird-Acoustic-Env-Sensor/
