@@ -1,13 +1,10 @@
-# Sunbird-Acoustic-Environmental-Sensor
-Setting up a Sunbird Acoustic Environmental Sensor - SAES
-
-# Sunbird Environmental Acoustic Sensor Setup Manual
+# Sunbird Acoustic Environmental Sensor (SAES)Setup Manual
 
 This manual guides you through setting up a Raspberry Pi–based acoustic sensor system using:
 
 * MEMS microphone (INMP411)
 * BME680 environmental sensor (I²C)
-* PMSA003I PM2.5 sensor (UART)
+* Plant-tower PM2.5 sensor (UART/I²C)
 * TensorFlow Lite on the edge for inference
 
 At the end, you can publish this in a GitHub repository.
@@ -16,14 +13,15 @@ At the end, you can publish this in a GitHub repository.
 
 ## 1. Prerequisites
 
-* Raspberry Pi 4 (or 3B+/3A+) with microSD card slot
+* Raspberry Zero 2W, Pi 4 (or 3B+/3A+) with microSD card slot
 * 16 GB (or larger) microSD card
 * USB power supply (5 V, ≥3 A)
 * MEMS microphone breakout (INMP411)
 * BME680 breakout (I²C)
-* PMSA003I PM2.5 breakout (UART) from Adafruit
+* Plant-tower PM2.5 breakout (UART/I²C) from Adafruit
 * Jumper wires, breadboard or soldered headers
 * Internet connection for setup
+* sim7600e/sim7600g-h for LTE  connection
 
 ## 2. Install Raspbian OS
 
@@ -141,4 +139,63 @@ Key steps summary:
    print("TFLite runtime ready")
    ```
 
-## 7. Sample Python Script
+## 7. Setup Systemd logging Service
+Setup as a Systemd Service
+
+To ensure your logging script runs on boot and restarts if it crashes, create a systemd service:
+
+Create the service file
+
+sudo nano /etc/systemd/system/logdata.service
+
+Paste the following contents:
+
+[Unit]
+Description=Environment Sensor Logging Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/modifiedlogger.py
+Restart=always
+User=pi
+WorkingDirectory=/home/pi/environmentsensor/scripts
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+
+Save and exit (Ctrl+O, Enter, Ctrl+X).
+
+Reload systemd to pick up the new unit:
+
+sudo systemctl daemon-reload
+
+Enable and start the service:
+
+sudo systemctl enable logdata.service
+sudo systemctl start logdata.service
+
+Verify it's running:
+
+sudo systemctl status logdata.service
+
+View live logs:
+
+journalctl -u logdata.service -f
+
+## 8. Setup cron job for Audio Capture & Inference
+
+If you prefer running the inference script on a schedule instead of (or alongside) a systemd service, you can use cron:
+
+Edit the crontab for the pi user:
+
+crontab -e
+
+Add the following line to run the script every 5 minutes and log output:
+
+*/5 * * * * /home/pi/environmentsensor/scripts/record-infer-noise-upload.py >> /home/pi/environmentsensor/logs/record-infer.log 2>&1
+
+Save and exit (Ctrl+O, Enter, Ctrl+X).
+
+Verify your crontab entries:
+
