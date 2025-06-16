@@ -61,6 +61,7 @@ By the end, your Raspberry Pi will collect environmental and acoustic data, proc
 ---
 
 ## 3. Enable I²S for MEMS Microphone
+Link: https://learn.adafruit.com/adafruit-i2s-mems-microphone-breakout/raspberry-pi-wiring-test
 
 1. Edit `/boot/config.txt`:
 
@@ -131,7 +132,7 @@ source ~/envs/sensor-env/bin/activate
 pip install --upgrade pip
 
 # Install required Python libraries
-pip install bme680 adafruit-circuitpython-pmsa003i sounddevice numpy pyserial tflite-runtime
+pip install sounddevice numpy pyserial adafruit-circuitpython-bme680
 
 # Install I²S tools for microphone testing
 sudo apt install i2s-tools -y
@@ -144,6 +145,22 @@ sudo apt install i2s-tools -y
 ```bash
 # Install dependencies
 sudo apt install libatlas-base-dev libjpeg-dev liblapack-dev -y
+
+# the tools needed
+$ sudo apt-get install cmake curl
+
+# download the latest TensorFlow version (2.6.0)
+$ wget -O tensorflow.zip https://github.com/tensorflow/tensorflow/archive/v2.6.0.zip
+
+# unpack and give the folder a convenient name
+$ unzip tensorflow.zip
+$ mv tensorflow-2.6.0 tensorflow
+$ cd tensorflow
+
+# get the dependencies
+$ ./tensorflow/lite/tools/make/download_dependencies.sh
+# run the C++ installation (± 25 min)
+$ ./tensorflow/lite/tools/make/build_rpi_lib.sh
 
 # Install tflite-runtime (inside your venv)
 pip install tflite-runtime
