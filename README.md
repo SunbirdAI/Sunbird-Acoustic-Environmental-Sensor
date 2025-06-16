@@ -1,216 +1,260 @@
-# Sunbird Acoustic Environmental Sensor (SAES)Setup Manual
+Sunbird Acoustic Environmental Sensor (SAES) — Setup Manual
+This manual guides you through setting up a Raspberry Pi–based acoustic environmental sensor using:
+MEMS microphone (INMP411) for acoustic data
 
-This manual guides you through setting up a Raspberry Pi–based acoustic sensor system using:
 
-* MEMS microphone (INMP411)
-* BME680 environmental sensor (I²C)
-* Plant-tower PM2.5 sensor (UART/I²C)
-* TensorFlow Lite on the edge for inference
+BME680 for temperature, humidity, pressure, and gas readings
 
-At the end, you can publish this in a GitHub repository.
 
----
+Plantower PMSA003I PM2.5 sensor
 
-## 1. Prerequisites
 
-* Raspberry Zero 2W, Pi 4 (or 3B+/3A+) with microSD card slot
-* 16 GB (or larger) microSD card
-* USB power supply (5 V, ≥3 A)
-* MEMS microphone breakout (INMP411)
-* BME680 breakout (I²C)
-* Plant-tower PM2.5 breakout (UART/I²C) from Adafruit
-* Jumper wires, breadboard or soldered headers
-* Internet connection for setup
-* sim7600e/sim7600g-h for LTE  connection
+TensorFlow Lite for on-device edge inference
 
-## 2. Install Raspbian OS
 
-1. Download Raspberry Pi OS (32-bit, lite or desktop) from the [official site](https://www.raspberrypi.com/software/).
-2. Use Raspberry Pi Imager or balenaEtcher to write the image to the microSD.
-3. Insert microSD, power on, and follow on-screen prompts.
-4. Update & upgrade packages:
+By the end, your Raspberry Pi will collect environmental and acoustic data, process it on the edge using machine learning, and upload results for further analysis.
 
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   sudo reboot
-   ```
+Table of Contents
+Prerequisites
 
-## 3. Enable I²S for MEMS Microphone
 
-The INMP411 uses the I²S bus.
+Install Raspberry Pi OS
 
-1. Open config:
 
-   ```bash
-   sudo nano /boot/config.txt
-   ```
-2. Add at the end:
+Enable I²S for MEMS Microphone
 
-   ```ini
-   dtparam=i2s=on
-   dtoverlay=googlevoicehat-soundcard
-   ```
 
-   > *Note: `googlevoicehat-soundcard` overlay works with many I²S MEMS mics.*
-3. Save and reboot:
+Wiring Diagrams
 
-   ```bash
-   sudo reboot
-   ```
 
-## 4. Wiring Diagrams
+Install Required Libraries
 
-### 4.1 MEMS Microphone (INMP411)
 
-| Microphone Pin | Pi Pin                     |
-| -------------- | -------------------------- |
-| VIN (3.3 V)    | 3V3 (Pin 1)                |
-| GND            | GND (Pin 9)                |
-| SD (Data)      | GPIO18 / PCM\_CLK (Pin 12) |
-| WS (LRCLK)     | GPIO19 / PCM\_FS  (Pin 35) |
-| SCK (BitClk)   | GPIO23 / PCM\_DIN (Pin 16) |
+TensorFlow Lite Setup
 
-### 4.2 BME680 (I²C)
 
-| Sensor Pin | Pi Pin       |
-| ---------- | ------------ |
-| VIN (3–5V) | 3V3 (Pin 1)  |
-| GND        | GND (Pin 6)  |
-| SDA        | SDA1 (Pin 3) |
-| SCL        | SCL1 (Pin 5) |
+Running and Testing the Microphone
 
-### 4.3 PMSA003I PM2.5 Sensor (UART)
 
-| Sensor Pin | Pi Pin                   |
-| ---------- | ------------------------ |
-| VIN (5 V)  | 5V (Pin 2)               |
-| GND        | GND (Pin 14)             |
-| TX         | GPIO15 (UART RX, Pin 10) |
-| RX         | GPIO14 (UART TX, Pin 8)  |
+Setup as a systemd Service
 
-## 5. Install Required Libraries
 
-We'll create a single virtual environment and install all required packages at once.
+Setup as a Cron Job (Optional)
 
-```bash
-# Install Python venv support
+
+File Structure (Recommended Repo Organization)
+
+
+
+1. Prerequisites
+Hardware:
+Raspberry Pi Zero 2W, Pi 4, or Pi 3B+/3A+
+
+
+16 GB (or larger) microSD card
+
+
+5 V / ≥3 A USB power supply
+
+
+INMP411 MEMS microphone (I²S)
+
+
+BME680 environmental sensor (I²C)
+
+
+Plantower PMSA003I PM2.5 sensor (UART/I²C)
+
+
+SIM7600E/SIM7600G-H module for LTE connectivity (optional)
+
+
+Jumper wires, breadboard or soldered headers
+
+
+Internet connection (for setup)
+
+
+
+2. Install Raspberry Pi OS
+Download Raspberry Pi OS (32-bit lite or desktop)
+ 👉 https://www.raspberrypi.com/software/
+
+
+Flash microSD using Raspberry Pi Imager or balenaEtcher.
+
+
+Insert microSD, boot, and complete initial setup.
+
+
+Update and upgrade:
+
+
+sudo apt update && sudo apt upgrade -y
+sudo reboot
+
+
+3. Enable I²S for MEMS Microphone
+The INMP411 uses I²S bus. Enable it as follows:
+sudo nano /boot/config.txt
+
+At the end, add:
+dtparam=i2s=on
+dtoverlay=googlevoicehat-soundcard
+
+Note: The googlevoicehat-soundcard overlay works with most I²S MEMS microphones.
+Reboot:
+sudo reboot
+
+
+4. Wiring Diagrams
+4.1 MEMS Microphone (INMP411)
+Microphone Pin
+Pi Pin
+VIN (3.3 V)
+3V3 (Pin 1)
+GND
+GND (Pin 9)
+SD (Data)
+GPIO18 / PCM_CLK (Pin 12)
+WS (LRCLK)
+GPIO19 / PCM_FS (Pin 35)
+SCK (BitClk)
+GPIO23 / PCM_DIN (Pin 16)
+
+4.2 BME680 (I²C)
+Sensor Pin
+Pi Pin
+VIN (3–5V)
+3V3 (Pin 1)
+GND
+GND (Pin 6)
+SDA
+SDA1 (Pin 3)
+SCL
+SCL1 (Pin 5)
+
+4.3 PMSA003I PM2.5 Sensor (UART)
+Sensor Pin
+Pi Pin
+VIN (5 V)
+5V (Pin 2)
+GND
+GND (Pin 14)
+TX
+GPIO15 (UART RX, Pin 10)
+RX
+GPIO14 (UART TX, Pin 8)
+
+
+5. Install Required Libraries
+First, set up a virtual environment for clean dependency management:
+# Install venv tools
 sudo apt install python3-pip python3-venv -y
 
-# Create and activate the virtual environment
+# Create and activate virtual environment
 python3 -m venv ~/envs/sensor-env
 source ~/envs/sensor-env/bin/activate
 
 # Upgrade pip
 pip install --upgrade pip
 
-# Install all sensor and ML libraries in one go
+# Install required Python libraries
 pip install bme680 adafruit-circuitpython-pmsa003i sounddevice numpy pyserial tflite-runtime
 
 # Install I²S tools for microphone testing
 sudo apt install i2s-tools -y
-```
 
-### 5.1 I²S MEMS Microphone Test
 
-```bash
+6. TensorFlow Lite Setup
+You will use TensorFlow Lite for edge inference. Simplest method:
+# Install dependencies
+sudo apt install libatlas-base-dev libjpeg-dev liblapack-dev -y
+
+# Install tflite-runtime
+pip install tflite-runtime
+
+Verify TensorFlow Lite:
+import tflite_runtime.interpreter as tflite
+print("TFLite runtime ready")
+
+For detailed builds, see QEngineering guide
+
+7. I²S MEMS Microphone Test
+Record audio:
 arecord --format=S32_LE --rate=16000 --channels=2 test.wav
+
+Playback:
 aplay test.wav
-```
 
-## 6. TensorFlow Lite Setup
 
-TensorFlow Lite Setup
+8. Setup as a Systemd Service
+Create a systemd service to run your sensor logger on boot:
+sudo nano /etc/systemd/system/logdata.service
 
-Follow Qengineering’s guide:
-[https://qengineering.eu/install-tensorflow-2-lite-on-raspberry-pi-4.html](https://qengineering.eu/install-tensorflow-2-lite-on-raspberry-pi-4.html)
+Paste:
+[Unit]
+Description=Environment Sensor Logging Service
+After=network.target
 
-Key steps summary:
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/modifiedlogger.py
+Restart=always
+User=pi
+WorkingDirectory=/home/pi/environmentsensor/scripts
+Environment=PYTHONUNBUFFERED=1
 
-1. Install dependencies:
+[Install]
+WantedBy=multi-user.target
 
-   ```bash
-   sudo apt install libatlas-base-dev libjpeg-dev liblapack-dev -y
-   pip install tflite-runtime
-   ```
-2. Verify installation:
+Reload and enable service:
+sudo systemctl daemon-reload
+sudo systemctl enable logdata.service
+sudo systemctl start logdata.service
 
-   ```python
-   import tflite_runtime.interpreter as tflite
-   print("TFLite runtime ready")
-   ```
+Check status:
+sudo systemctl status logdata.service
 
-Here are the two sections in Markdown form—just copy & paste them into your README:
+Live logs:
+journalctl -u logdata.service -f
 
-## 8. Setup as a Systemd Service
 
-To ensure your logging script runs on boot and restarts if it crashes, create a systemd service:
+9. Setup as a Cron Job (Optional)
+If you prefer to schedule inference periodically:
+crontab -e
 
-1. **Create the service file**  
-   ```bash
-   sudo nano /etc/systemd/system/logdata.service
-````
+Add:
+*/5 * * * * /home/pi/environmentsensor/scripts/record-infer-noise-upload.py >> /home/pi/environmentsensor/logs/record-infer.log 2>&1
 
-2. **Paste the following contents**:
+Verify:
+crontab -l
 
-   ```ini
-   [Unit]
-   Description=Environment Sensor Logging Service
-   After=network.target
 
-   [Service]
-   ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/modifiedlogger.py
-   Restart=always
-   User=pi
-   WorkingDirectory=/home/pi/environmentsensor/scripts
-   Environment=PYTHONUNBUFFERED=1
+10. Recommended Repo Structure
+For your GitHub repo:
+Sunbird-Acoustic-Env-Sensor/
+│
+├── environmentsensor/
+│   └── scripts/
+│       ├── modifiedlogger.py
+│       ├── record-infer-noise-upload.py
+│       └── inference_model.tflite
+│
+├── logs/
+├── README.md  <-- (this file)
+├── wiring_diagrams/
+└── requirements.txt
 
-   [Install]
-   WantedBy=multi-user.target
-   ```
-3. **Save and exit** (`Ctrl+O`, `Enter`, `Ctrl+X`).
-4. **Reload systemd** to pick up the new unit:
 
-   ```bash
-   sudo systemctl daemon-reload
-   ```
-5. **Enable and start the service**:
+Notes
+Always verify your sensor connections before powering.
 
-   ```bash
-   sudo systemctl enable logdata.service
-   sudo systemctl start logdata.service
-   ```
-6. **Verify it's running**:
 
-   ```bash
-   sudo systemctl status logdata.service
-   ```
-7. **View live logs**:
+Use raspi-config to enable interfaces (I2C, UART, I2S if necessary).
 
-   ```bash
-   journalctl -u logdata.service -f
-   ```
 
-## 9. Setup as a Cron Job
+Disable HDMI, Wi-Fi, and other interfaces to reduce power if running off-grid.
 
-If you prefer running the inference script on a schedule (e.g., every 5 minutes), use cron:
 
-1. **Edit the crontab** for the `pi` user:
 
-   ```bash
-   crontab -e
-   ```
-2. **Add this line** to run the script every 5 minutes and append output to your log:
 
-   ```cron
-   */5 * * * * /home/pi/environmentsensor/scripts/record-infer-noise-upload.py >> /home/pi/environmentsensor/logs/record-infer.log 2>&1
-   ```
-3. **Save and exit** (`Ctrl+O`, `Enter`, `Ctrl+X`).
-4. **Verify your crontab entries**:
-
-   ```bash
-   crontab -l
-   ```
-
-```
-```
-````markdown
