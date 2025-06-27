@@ -191,8 +191,26 @@ aplay test.wav
 ```
 
 ---
+## 8. Install Sound Meter Package to Read Decibels prior to Audio Capture
+sudo apt-get update
+sudo apt-get install -y portaudio19-dev python-dev alsa-utils
+pip install soundmeter
 
-## 8. Setup as a Systemd Service
+Run this in the terminal to confirm soundmeter functionality 
+```
+soundmeter
+```
+```
+$ soundmeter --collect --seconds 10
+Collecting RMS values...
+   154  Timeout
+Collected result:
+    min:        152
+    max:        211
+    avg:        156
+```
+
+## 9. Setup as a Meta Data Logging Systemd Service
 
 Create and enable a systemd service to run your logger on boot:
 
@@ -233,8 +251,90 @@ journalctl -u logdata.service -f
 ```
 
 ---
+## 10. Setup service to measure decibel, record sound, infer and upload it to the cloud
+```bash
+sudo nano /etc/systemd/system/noiseinference.service
+```
+Paste the following:
+```ini
+[Unit]
+Description=Sound Inference Script
+After=network.target
 
-## 9. Setup as a Cron Job (Optional)
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/inference.py
+Restart=always
+User=pi
+WorkingDirectory=/home/pi/environmentsensor/scripts
+Environment=PYTHONUNBUFFERED=1
+
+# Uncomment below if root/sudo access is needed by the script:
+# ExecStartPre=/bin/sleep 30
+# CapabilityBoundingSet=CAP_SYS_ADMIN CAP_NET_ADMIN
+# AmbientCapabilities=CAP_SYS_ADMIN CAP_NET_ADMIN
+# or use sudo directly if needed and passwordless is set up
+# ExecStart=/usr/bin/sudo /usr/bin/python3 /home/pi/environmentsensor/scripts/inference.py
+
+[Install]
+WantedBy=multi-user.target
+```
+Then reload, enable, and start the service:
+
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable noiseinference.service
+sudo systemctl start noiseinference.service
+
+
+# Check status
+sudo systemctl status noiseinference.service
+
+# View live logs
+journalctl -u noiseinference.service -f
+```
+---
+
+## 11. Setup service to measure sensor energy metrics, gps data and communicate with the raspberry pi 
+```bash
+sudo nano /etc/systemd/system/noisehardwaredata.service
+```
+Paste the following:
+```ini
+[Unit]
+Description=Hardware Data Logger Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/environmentsensor/scripts
+ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/hardwaredata.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+Then reload, enable, and start the service:
+
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable noisehardwaredata.service
+sudo systemctl start noisehardwaredata.service
+
+
+# Check status
+sudo systemctl status noisehardwaredata.service
+
+# View live logs
+journalctl -u noisehardwaredata.service -f
+```
+
+---
+
+## 12. Setup as a Cron Job (Optional)
 
 If you prefer scheduled runs instead of or alongside systemd:
 
@@ -245,7 +345,7 @@ crontab -e
 Add the following line to run every 5 minutes:
 
 ```cron
-*/5 * * * * /home/pi/environmentsensor/scripts/record-infer-noise-upload.py >> /home/pi/environmentsensor/logs/record-infer.log 2>&1
+*/5 * * * * /home/pi/environmentsensor/scripts/hardwaredata.py >> /home/pi/environmentsensor/logs/hardwaredata.log 2>&1
 ```
 
 Verify with:
@@ -256,21 +356,28 @@ crontab -l
 
 ---
 
-## 10. Repo Structure
+## 13. Device Structure
 
 ```
-Sunbird-Acoustic-Env-Sensor/
+Sunbird-Acoustic-Environmental-Sensor/
 │
 ├── environmentsensor/
-│   └── scripts/
-│       ├── modifiedlogger.py
-│       ├── record-infer-noise-upload.py
-│       └── inference_model.tflite
+│   ├── scripts/
+│   │   ├── modifiedlogger.py
+│   │   ├── inference.py
+│   │   └── hardwaredata.py
+│   │
+│   ├── quantizedmodels/
+│   │   └── inference_model.tflite
+│   │
+│   ├── logs/
+│   ├── batterydata/
+│   └── rawaudio/
 │
-├── logs/
 ├── wiring_diagrams/
 ├── requirements.txt
-└── README.md  <-- this file
+└── README.md
+
 ```
 
 ---
