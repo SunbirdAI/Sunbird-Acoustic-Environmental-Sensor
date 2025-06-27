@@ -4,8 +4,10 @@ This manual guides you through setting up a Raspberry Pi–based acoustic enviro
 
 - **MEMS microphone (INMP411)** for acoustic data  
 - **BME680** for temperature, humidity, pressure, and gas readings  
-- **Plantower PMSA003I** PM2.5 sensor  
-- **TensorFlow Lite** for on-device edge inference  
+- **Plantower PMS5003** PM2.5 Air Quality Sensor and Breadboard Adapter Kit - PMS5003
+- **Pi Zero 2W** raspberry pi of choice
+- **TensorFlow Lite** for on-device edge inference
+- **SIM7600G-H 4G modem breakout or HAT** data connectivity for remote deployments 
 
 By the end, your Raspberry Pi will collect environmental and acoustic data, process it on the edge using machine learning, and upload results for further analysis.
 
