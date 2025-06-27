@@ -1,4 +1,4 @@
-# Sunbird Acoustic Environmental Sensor (SAES) — Setup Manual
+# Sunbird Acoustic Environmental Sensor (SAES) v1 — Setup Manual jUNE 27th Update
 
 This manual guides you through setting up a Raspberry Pi–based acoustic environmental sensor using:
 
@@ -86,7 +86,7 @@ Link: https://learn.adafruit.com/adafruit-i2s-mems-microphone-breakout/raspberry
 
 ---
 
-## 4. Wiring Diagrams
+## 4. Wiring Connections
 
 ### 4.1 MEMS Microphone (INMP411)
 
@@ -353,10 +353,69 @@ Verify with:
 ```bash
 crontab -l
 ```
+## 13. Communication Setup: WiFi / LTE modem sim7600G-h
+
+WiFi Setup (Recommended for Lab/Test Deployments)
+Ensure that the Raspberry Pi connects to your preferred WiFi network before deployment:
+
+Open the Raspberry Pi terminal.
+
+Configure WiFi using raspi-config or by editing wpa_supplicant.conf:
+
+```bash
+sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+```
+Add your network details:
+```
+network={
+  ssid="YourNetworkName"
+  psk="YourNetworkPassword"
+}
+```
+Reboot to apply:
+
+```bash
+sudo reboot
+```
+
+4G Cellular Setup (For Remote/Field Deployments)
+For remote locations without reliable WiFi, use the SIM7600G-H 4G modem.
+
+Option A: USB-Based Connection
+Connect the SIM7600G-H USB modem to your computer using a micro-USB male to micro-USB female cable.
+
+Open a serial terminal tool (e.g., PuTTY, CoolTerm, or TeraTerm).
+
+Identify the AT port, typically labeled as AT 9001 or similar.
+
+Connect to the AT port using a baud rate of 115200.
+
+Send the following command to switch the modem to hot plug mode:
+```
+bash
+
+AT+CUSBPIDSWITCH=9011,1,1
+```
+Wait for the modem to restart.
+
+Now connect the modem to the Raspberry Pi via a USB port.
+
+Important: Disable WiFi on the Pi to avoid network conflicts when using the modem.
+
+Option B: HAT-Based Connection
+Alternatively, you can use the SIM7600G-H 4G HAT B by Waveshare:https://www.waveshare.com/sim7600g-h-4g-hat-b.htm
+
+Product link: SIM7600G-H 4G HAT B (Waveshare)
+
+Simply screw the HAT directly onto the Raspberry Pi GPIO pins.
+
+Connect the micro-USB port of the HAT to the Pi for data and power.
+
+Tested alternative: SIM7600G-H Breakout Module on AliExpress(https://www.aliexpress.com/i/4000078222573.html)
 
 ---
 
-## 13. Device Structure
+## 14. Device Structure
 
 ```
 Sunbird-Acoustic-Environmental-Sensor/
