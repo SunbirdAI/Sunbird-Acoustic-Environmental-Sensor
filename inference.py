@@ -110,15 +110,28 @@ def run_inference(model_path, audio_path):
 
 def get_and_update_counter():
     today = datetime.datetime.now().strftime("%Y-%m-%d")
+    cnt = 1
+
+    # Try to read an existing counter
     if os.path.exists(COUNTER_FILE):
-        with open(COUNTER_FILE) as f:
-            date, cnt = f.read().split(",")
-            cnt = int(cnt) + 1 if date == today else 1
-    else:
-        cnt = 1
+        try:
+            with open(COUNTER_FILE, "r") as f:
+                content = f.read().strip()
+            prev_date, prev_cnt = content.split(",", 1)
+            if prev_date == today:
+                cnt = int(prev_cnt) + 1
+            else:
+                cnt = 1
+        except Exception:
+            # file is empty, malformed, or contains a single value:
+            cnt = 1
+
+    # Write back today's date and the updated count
     with open(COUNTER_FILE, "w") as f:
         f.write(f"{today},{cnt}")
+
     return cnt, today
+
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
