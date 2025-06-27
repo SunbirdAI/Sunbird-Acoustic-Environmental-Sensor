@@ -382,7 +382,7 @@ sudo reboot
 
 For remote locations without reliable WiFi, use the SIM7600G-H 4G modem.
 
-*Option A: USB-Based Connection*
+**Option A: USB-Based Connection**
 1. Connect the SIM7600G-H USB modem to your computer using a micro-USB male to micro-USB female cable.
 2. Open a serial terminal tool (e.g., PuTTY, CoolTerm, or TeraTerm).
 3. Identify the AT port, typically labeled as AT 9001 or similar.
@@ -397,7 +397,7 @@ AT+CUSBPIDSWITCH=9011,1,1
 
 Important: Disable WiFi on the Pi to avoid network conflicts when using the modem.
 
-*Option B: HAT-Based Connection*
+**Option B: HAT-Based Connection**
 
 Alternatively, you can use the SIM7600G-H 4G HAT B by Waveshare:https://www.waveshare.com/sim7600g-h-4g-hat-b.htm
 
