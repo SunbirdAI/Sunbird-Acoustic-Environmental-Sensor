@@ -90,7 +90,7 @@ Link: https://learn.adafruit.com/adafruit-i2s-mems-microphone-breakout/raspberry
 
 ## 4. Wiring Connections
 
-### 4.1 MEMS Microphone (INMP411)
+### MEMS Microphone (INMP411)
 
 | Microphone Pin | Pi Pin                     |
 | -------------- | -------------------------- |
@@ -100,7 +100,7 @@ Link: https://learn.adafruit.com/adafruit-i2s-mems-microphone-breakout/raspberry
 | WS (LRCLK)     | GPIO19 / PCM_FS (Pin 35)   |
 | SCK (BitClk)   | GPIO23 / PCM_DIN (Pin 16)  |
 
-### 4.2 BME680 (I²C)
+### BME680 (I²C)
 
 | Sensor Pin | Pi Pin         |
 | ---------- | -------------- |
@@ -109,7 +109,7 @@ Link: https://learn.adafruit.com/adafruit-i2s-mems-microphone-breakout/raspberry
 | SDA         | SDA1 (Pin 3)  |
 | SCL         | SCL1 (Pin 5)  |
 
-### 4.3 PMSA003I PM2.5 Sensor (UART)
+### PMSA003I PM2.5 Sensor (UART)
 
 | Sensor Pin | Pi Pin                   |
 | ---------- | ------------------------ |
@@ -379,6 +379,7 @@ sudo reboot
 ```
 
 **4G Cellular Setup (For Remote/Field Deployments)**
+
 For remote locations without reliable WiFi, use the SIM7600G-H 4G modem.
 
 *Option A: USB-Based Connection*
