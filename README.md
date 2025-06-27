@@ -1,4 +1,4 @@
-# Sunbird Acoustic Environmental Sensor (SAES) v1 — Setup Manual jUNE 27th Update
+# Sunbird Acoustic Environmental Sensor (SAES) v1 — Setup Manual
 
 This manual guides you through setting up a Raspberry Pi–based acoustic environmental sensor using:
 
