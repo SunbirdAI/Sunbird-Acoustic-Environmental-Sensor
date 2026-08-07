@@ -28,7 +28,7 @@ class_names = {
      0: 'other'
 }
 
-MODEL_PATH    = "/home/pi/environmentsensor/quantizedmodels/12AugModel.tflite"
+MODEL_PATH    = "/home/pi/environmentsensor/quantizedmodels/seas_noise_classifier_v1.tflite"
 COUNTER_FILE  = "counter.txt"
 RECORD_SECONDS = 10
 SAMPLE_RATE    = 44100
