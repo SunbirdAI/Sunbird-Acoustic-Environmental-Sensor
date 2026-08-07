@@ -158,7 +158,7 @@ while True:
 
         # — Build payload —
         payload = {
-            "device":             "SEAS-1",
+            "device":             "SEAS-3",
             "temperature":        temperature,
             "pressure":           pressure,
             "humidity":           humidity,

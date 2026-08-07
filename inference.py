@@ -17,7 +17,7 @@ from math import log10
 # — your two endpoints & device ID —
 AUDIO_ENDPOINT     = "https://noise-sensors-dashboard.herokuapp.com/audio/"
 INFERENCE_ENDPOINT = "https://noise-sensors-dashboard.herokuapp.com/device_metrics/sound-inference-data/"
-DEVICE_ID          = "SEAS-1"
+DEVICE_ID          = "SEAS-3"
 
 # — class names for your 19-class noise model —
 class_names = {
