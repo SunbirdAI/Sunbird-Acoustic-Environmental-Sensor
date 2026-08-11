@@ -43,7 +43,6 @@ ARCH=$(uname -m)
 section "1 · System update"
 # =============================================================================
 apt-get update -y
-apt-get upgrade -y
 
 # =============================================================================
 section "2 · System packages"
@@ -190,6 +189,7 @@ sudo -u "$REAL_USER" "$VENV_PIP" install \
     pyserial \
     bme680 \
     adafruit-circuitpython-pm25 \
+    adafruit-circuitpython-ina219 \
     adafruit-blinka \
     RPi.GPIO \
     sysv-ipc
@@ -217,6 +217,7 @@ mods = [
     ("serial",                      "pyserial"),
     ("bme680",                      "bme680"),
     ("adafruit_pm25",               "adafruit-circuitpython-pm25"),
+    ("adafruit_ina219",             "adafruit-circuitpython-ina219"),
     ("soundmeter",                  "soundmeter"),
 ]
 for mod, pkg in mods:
