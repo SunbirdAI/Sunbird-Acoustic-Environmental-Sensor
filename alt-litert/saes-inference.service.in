@@ -1,0 +1,16 @@
+[Unit]
+Description=SEAS edge noise classification (record, classify, upload label only)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+User=@USER@
+WorkingDirectory=@DIR@
+EnvironmentFile=-/etc/default/saes
+ExecStartPre=-/usr/bin/amixer -q -c Device sset Mic 8
+ExecStart=@DIR@/venv/bin/python @DIR@/inference.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=SEAS environment + power logger (BME680, UPS HAT)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=@USER@
+WorkingDirectory=@DIR@
+EnvironmentFile=-/etc/default/saes
+ExecStart=@DIR@/venv/bin/python @DIR@/sensors.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

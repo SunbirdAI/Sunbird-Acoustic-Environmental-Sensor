@@ -1,3 +1,5 @@
+> **Newer alternative:** [`alt-litert/`](alt-litert/) runs the newer waveform-in classifiers with `ai-edge-litert` on 64-bit boards. This original pipeline is unchanged.
+
 # Sunbird Acoustic Environmental Sensor (SAES) v1 — Setup Manual
 
 This manual guides you through setting up a Raspberry Pi–based acoustic environmental sensor using:
