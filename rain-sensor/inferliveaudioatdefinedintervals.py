@@ -1,9 +1,10 @@
 """Live rain-intensity inference on the SAES sensor.
 
-Records a short clip with arecord, extracts YAMNet embeddings with the YAMNet
-TFLite model, averages them over time and classifies the result with
-rain_classifier.tflite. Uses only the TFLite interpreter (tflite-runtime), not
-the full TensorFlow package.
+Records a short clip with arecord, extracts YAMNet embeddings with the 8-bit
+quantized YAMNet front end inside the SAES noise model
+(seas_noise_classifier_v1.tflite), averages them over time and classifies the
+result with rain_classifier.tflite. Uses only the TFLite interpreter
+(tflite-runtime), not the full TensorFlow package.
 """
 import math
 import os
@@ -28,7 +29,7 @@ INTERVAL = 10                # seconds between classifications
 CLASS_NAMES = {0: "Heavy Rain", 1: "Light Rain", 2: "No Rain"}
 
 MODEL_DIR = os.environ.get("SAES_MODEL_DIR", "/home/pi/InferenceRainSensor/savedsbmodels")
-YAMNET_PATH = os.path.join(MODEL_DIR, "yamnet.tflite")
+FRONTEND_PATH = os.path.join(MODEL_DIR, "seas_noise_classifier_v1.tflite")
 CLASSIFIER_PATH = os.path.join(MODEL_DIR, "rain_classifier.tflite")
 WAV_PATH = os.environ.get("SAES_WAV_PATH", "/home/pi/InferenceRainSensor/recorded_file.wav")
 
@@ -57,8 +58,15 @@ def load_audio(path):
 
 
 class RainClassifier:
-    def __init__(self, yamnet_path=YAMNET_PATH, classifier_path=CLASSIFIER_PATH):
-        self.yamnet = Interpreter(model_path=yamnet_path)
+    def __init__(self, frontend_path=FRONTEND_PATH, classifier_path=CLASSIFIER_PATH):
+        # The noise model holds a quantized YAMNet followed by the noise head.
+        # Keep intermediate tensors so the YAMNet embeddings can be read out.
+        self.yamnet = Interpreter(model_path=frontend_path,
+                                  experimental_preserve_all_tensors=True)
+        self.embedding_index = next(
+            d["index"] for d in self.yamnet.get_tensor_details()
+            if "global_average_pooling2d/Mean" in d["name"]
+            and len(d["shape"]) == 2 and d["shape"][-1] == 1024)
         self.head = Interpreter(model_path=classifier_path)
         self.head.allocate_tensors()
         self.head_in = self.head.get_input_details()[0]["index"]
@@ -71,7 +79,7 @@ class RainClassifier:
         self.yamnet.allocate_tensors()
         self.yamnet.set_tensor(inp, audio)
         self.yamnet.invoke()
-        embeddings = self.yamnet.get_tensor(self.yamnet.get_output_details()[1]["index"])
+        embeddings = self.yamnet.get_tensor(self.embedding_index)
         return embeddings.reshape(-1, 1024).mean(axis=0)
 
     def predict(self, audio):
