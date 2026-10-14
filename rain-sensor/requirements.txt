@@ -1,6 +1,4 @@
-librosa
-pandas
-tensorflow
-tensorflow-hub
+tflite-runtime
 numpy
-psutil
+scipy
+soundfile
