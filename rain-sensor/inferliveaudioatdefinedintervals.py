@@ -9,6 +9,7 @@ import math
 import os
 import resource
 import subprocess
+import sys
 import time
 
 import numpy as np
@@ -33,8 +34,9 @@ WAV_PATH = os.environ.get("SAES_WAV_PATH", "/home/pi/InferenceRainSensor/recorde
 
 
 def peak_memory_mb():
-    """Peak resident memory of this process in MB (Linux reports kB)."""
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+    """Peak resident memory of this process in MB (kB on Linux, bytes on macOS)."""
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return peak / (1024 * 1024) if sys.platform == "darwin" else peak / 1024
 
 
 def record_audio(file_path, duration=DURATION, sample_rate=SAMPLE_RATE):
