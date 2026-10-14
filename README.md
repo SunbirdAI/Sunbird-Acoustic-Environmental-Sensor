@@ -2,7 +2,7 @@
 
 This manual guides you through setting up a Raspberry Pi–based acoustic environmental sensor using:
 
-- **MEMS microphone (INMP411)** for acoustic data  
+- **MEMS microphone (INMP441)** for acoustic data  
 - **BME680** for temperature, humidity, pressure, and gas readings  
 - **Plantower PMS5003** PM2.5 Air Quality Sensor and Breadboard Adapter Kit - PMS5003
 - **Pi Zero 2W** raspberry pi of choice
@@ -19,7 +19,7 @@ By the end, your Raspberry Pi will collect environmental and acoustic data, proc
 2. [Install Raspberry Pi OS](#install-raspberry-pi-os)  
 3. [Enable I²S for MEMS Microphone](#enable-i%C2%B2s-for-mems-microphone)  
 4. [Wiring Diagrams](#wiring-diagrams)  
-   - [4.1 MEMS Microphone (INMP411)](#41-mems-microphone-inmp411)  
+   - [4.1 MEMS Microphone (INMP441)](#41-mems-microphone-inmp441)  
    - [4.2 BME680 (I²C)](#42-bme680-i%C2%B2c)  
    - [4.3 PMSA003I PM2.5 Sensor (UART)](#43-pmsa003i-pm25-sensor-uart)  
 5. [Install Required Libraries](#install-required-libraries)  
@@ -38,7 +38,7 @@ By the end, your Raspberry Pi will collect environmental and acoustic data, proc
 - Raspberry Pi Zero 2W, Pi 4, or Pi 3B+/3A+  
 - 16 GB (or larger) microSD card  
 - 5 V / ≥ 3 A USB power supply  
-- INMP411 MEMS microphone (I²S)  
+- INMP441 MEMS microphone (I²S)  
 - BME680 environmental sensor (I²C)  
 - Plantower PMSA003I PM2.5 sensor (UART/I²C)  
 - SIM7600E/SIM7600G-H module for LTE connectivity (optional)  
@@ -90,7 +90,7 @@ Link: https://learn.adafruit.com/adafruit-i2s-mems-microphone-breakout/raspberry
 
 ## 4. Wiring Connections
 
-### MEMS Microphone (INMP411)
+### MEMS Microphone (INMP441)
 
 | Microphone Pin | Pi Pin                     |
 | -------------- | -------------------------- |

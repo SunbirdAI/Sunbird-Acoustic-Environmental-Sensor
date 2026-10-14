@@ -1,0 +1,6 @@
+librosa
+pandas
+tensorflow
+tensorflow-hub
+numpy
+psutil
