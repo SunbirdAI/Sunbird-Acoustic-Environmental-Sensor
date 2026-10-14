@@ -442,3 +442,17 @@ Sunbird-Acoustic-Environmental-Sensor/
 - Always verify your sensor connections before powering on.  
 - Use `raspi-config` to enable interfaces (I2C, UART, I²S) if needed.  
 - To reduce power consumption when off-grid, consider disabling HDMI, Wi-Fi, and other unused interfaces.  
+
+---
+
+## License
+
+This project uses different licenses for different parts, as is usual for open hardware.
+
+| What | Where | License | File |
+|---|---|---|---|
+| Firmware and scripts | `*.py`, `*.sh`, `install.sh`, `rain-sensor/` | GNU GPL v3.0 | [LICENSE](LICENSE) |
+| Hardware design files (PCB, schematic, enclosure) | `schematics/` | CERN-OHL-W-2.0 | [LICENSE-HARDWARE](LICENSE-HARDWARE) |
+| Documentation and trained models | `README.md`, `quantizedmodels/`, `rain-sensor/*.tflite` | CC BY 4.0 | [LICENSE-DOCS](LICENSE-DOCS) |
+
+Copyright (c) Sunbird AI Ltd.
