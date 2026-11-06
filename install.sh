@@ -88,7 +88,7 @@ enable_overlay() {
 raspi-config nonint do_i2c 0
 enable_overlay "dtparam=i2c_arm=on"
 
-# UART (for batterymetricsv2 on /dev/ttyS0 and PM2.5 on USB-UART)
+# UART (for battery_monitor on /dev/ttyS0 and PM2.5 on USB-UART)
 raspi-config nonint do_serial 2          # enable hardware UART, disable login shell on serial
 enable_overlay "enable_uart=1"
 
@@ -101,7 +101,7 @@ info "Interfaces enabled in $CONFIG — reboot required (done at end of install)
 # =============================================================================
 section "4 · ALSA config for plug:dmic_sv device alias"
 # =============================================================================
-# inference.py records via: arecord -D plug:dmic_sv
+# noise_inference.py records via: arecord -D plug:dmic_sv
 # This creates the dmic_sv PCM that googlevoicehat exposes, then wraps it
 # with the plug layer for rate conversion (44100 → device native).
 cat > /etc/asound.conf << 'ALSA_EOF'
@@ -241,7 +241,7 @@ section "11 · Copy application scripts"
 # =============================================================================
 # Assumes this installer lives in the repo root beside the .py files.
 INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPTS=( inference.py modifiedlogger.py batterymetricsv2.py metadatalogger.py record-infer-pushtoserver.py )
+SCRIPTS=( noise_inference.py env_logger.py battery_monitor.py )
 
 for s in "${SCRIPTS[@]}"; do
     if [[ -f "$INSTALLER_DIR/$s" ]]; then
@@ -302,13 +302,13 @@ EOF
     info "Service file written: /etc/systemd/system/${name}.service"
 }
 
-write_service "seas-inference"    "SAES Noise Inference & Upload"          "inference.py"
-write_service "seas-envlogger"    "SAES Environmental Data Logger"         "modifiedlogger.py"
-write_service "seas-batterydata"  "SAES Battery & GPS Telemetry"           "batterymetricsv2.py"
+write_service "seas-noise-inference"   "SEAS Noise Inference & Upload"       "noise_inference.py"
+write_service "seas-env-logger"        "SEAS Environmental Data Logger"       "env_logger.py"
+write_service "seas-battery-monitor"    "SEAS Battery Monitor"                 "battery_monitor.py"
 
 systemctl daemon-reload
 
-for svc in seas-inference seas-envlogger seas-batterydata; do
+for svc in seas-noise-inference seas-env-logger seas-battery-monitor; do
     systemctl enable "$svc"
     info "Enabled $svc (will start on next boot)"
 done
@@ -316,11 +316,11 @@ done
 # =============================================================================
 section "14 · soundmeter PATH for systemd"
 # =============================================================================
-# inference.py calls soundmeter via absolute path /home/pi/.local/bin/soundmeter
+# legacy scripts call soundmeter via absolute path /home/pi/.local/bin/soundmeter
 # which won't exist inside the venv. Create a symlink into the venv bin dir.
 SOUNDMETER_BIN="$VENV_DIR/bin/soundmeter"
 if [[ -f "$SOUNDMETER_BIN" ]]; then
-    # Also create the legacy path inference.py hard-codes
+    # Also create the legacy path those scripts hard-code
     mkdir -p "$REAL_HOME/.local/bin"
     ln -sf "$SOUNDMETER_BIN" "$REAL_HOME/.local/bin/soundmeter" \
         && chown -h "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/soundmeter"
@@ -360,18 +360,18 @@ echo "       arecord -D plug:dmic_sv -c2 -r 44100 -f S32_LE -d 3 test.wav"
 echo "       aplay test.wav"
 echo ""
 echo "  4. Start services manually to verify before relying on autostart:"
-echo "       sudo systemctl start seas-inference"
-echo "       sudo systemctl start seas-envlogger"
-echo "       sudo systemctl start seas-batterydata"
+echo "       sudo systemctl start seas-noise-inference"
+echo "       sudo systemctl start seas-env-logger"
+echo "       sudo systemctl start seas-battery-monitor"
 echo ""
 echo "  5. Check logs:"
-echo "       journalctl -u seas-inference -f"
-echo "       journalctl -u seas-envlogger -f"
-echo "       journalctl -u seas-batterydata -f"
+echo "       journalctl -u seas-noise-inference -f"
+echo "       journalctl -u seas-env-logger -f"
+echo "       journalctl -u seas-battery-monitor -f"
 echo ""
 echo "  6. Update DEVICE_ID in scripts if deploying multiple nodes:"
-echo "       $SCRIPTS_DIR/inference.py      (DEVICE_ID = \"SEAS-2\")"
-echo "       $SCRIPTS_DIR/modifiedlogger.py (device = \"SEAS-2\")"
+echo "       $SCRIPTS_DIR/noise_inference.py (DEVICE_ID = \"SEAS-2\")"
+echo "       $SCRIPTS_DIR/env_logger.py      (device = \"SEAS-2\")"
 echo ""
 warn "A reboot is required for I2S and UART overlays to take effect."
 echo ""

@@ -217,18 +217,18 @@ Collected result:
 Create and enable a systemd service to run your logger on boot:
 
 ```bash
-sudo nano /etc/systemd/system/logdata.service
+sudo nano /etc/systemd/system/seas-env-logger.service
 ```
 
 Paste the following:
 
 ```ini
 [Unit]
-Description=Environment Sensor Logging Service
+Description=SEAS Environmental Data Logger
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/modifiedlogger.py
+ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/env_logger.py
 Restart=always
 User=pi
 WorkingDirectory=/home/pi/environmentsensor/scripts
@@ -242,29 +242,29 @@ Then reload, enable, and start the service:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable logdata.service
-sudo systemctl start logdata.service
+sudo systemctl enable seas-env-logger.service
+sudo systemctl start seas-env-logger.service
 
 # Check status
-sudo systemctl status logdata.service
+sudo systemctl status seas-env-logger.service
 
 # View live logs
-journalctl -u logdata.service -f
+journalctl -u seas-env-logger.service -f
 ```
 
 ---
 ## 10. Setup service to measure decibel, record sound, infer and upload it to the cloud
 ```bash
-sudo nano /etc/systemd/system/noiseinference.service
+sudo nano /etc/systemd/system/seas-noise-inference.service
 ```
 Paste the following:
 ```ini
 [Unit]
-Description=Sound Inference Script
+Description=SEAS Noise Inference
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/inference.py
+ExecStart=/usr/bin/python3 /home/pi/environmentsensor/scripts/noise_inference.py
 Restart=always
 User=pi
 WorkingDirectory=/home/pi/environmentsensor/scripts
@@ -275,7 +275,7 @@ Environment=PYTHONUNBUFFERED=1
 # CapabilityBoundingSet=CAP_SYS_ADMIN CAP_NET_ADMIN
 # AmbientCapabilities=CAP_SYS_ADMIN CAP_NET_ADMIN
 # or use sudo directly if needed and passwordless is set up
-# ExecStart=/usr/bin/sudo /usr/bin/python3 /home/pi/environmentsensor/scripts/inference.py
+# ExecStart=/usr/bin/sudo /usr/bin/python3 /home/pi/environmentsensor/scripts/noise_inference.py
 
 [Install]
 WantedBy=multi-user.target
@@ -285,15 +285,15 @@ Then reload, enable, and start the service:
 ```bash
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
-sudo systemctl enable noiseinference.service
-sudo systemctl start noiseinference.service
+sudo systemctl enable seas-noise-inference.service
+sudo systemctl start seas-noise-inference.service
 
 
 # Check status
-sudo systemctl status noiseinference.service
+sudo systemctl status seas-noise-inference.service
 
 # View live logs
-journalctl -u noiseinference.service -f
+journalctl -u seas-noise-inference.service -f
 ```
 ---
 
@@ -418,12 +418,12 @@ Sunbird-Acoustic-Environmental-Sensor/
 │
 ├── environmentsensor/
 │   ├── scripts/
-│   │   ├── modifiedlogger.py
-│   │   ├── inference.py
+│   │   ├── env_logger.py
+│   │   ├── noise_inference.py
 │   │   └── hardwaredata.py
 │   │
 │   ├── quantizedmodels/
-│   │   └── inference_model.tflite
+│   │   └── seas_noise_classifier_v3.tflite
 │   │
 │   ├── logs/
 │   ├── batterydata/

@@ -46,7 +46,7 @@ ARECORD_DEV     = "plug:dmic_sv"
 # Matches the environmental logger's cadence (~1 min)
 INTERVAL_SECONDS = 60
 
-# The I2S mic is an exclusive hw device; modifiedlogger.py takes the same lock
+# The I2S mic is an exclusive hw device; env_logger.py takes the same lock
 MIC_LOCK = "/tmp/seas-mic.lock"
 
 # ─── Audio + Inference helpers ───────────────────────────────────────────────

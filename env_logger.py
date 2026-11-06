@@ -97,7 +97,7 @@ def get_db_level(duration=5):
     """Returns LAeq in dB(A) over `duration` seconds, or NaN on failure.
     Audio is piped straight into memory and never written to disk."""
     try:
-        # Shared with inference.py: the I2S mic can only be opened by one process
+        # Shared with noise_inference.py: the I2S mic can only be opened by one process
         with open(MIC_LOCK, "a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             raw = subprocess.run(
