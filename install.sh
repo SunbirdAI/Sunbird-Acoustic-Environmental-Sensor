@@ -262,7 +262,7 @@ done
 # =============================================================================
 section "12 · Model placeholder"
 # =============================================================================
-MODEL_FILE="seas_noise_classifier_v1.tflite"
+MODEL_FILE="seas_noise_classifier_v3.tflite"
 if [[ -f "$INSTALLER_DIR/quantizedmodels/$MODEL_FILE" ]]; then
     cp "$INSTALLER_DIR/quantizedmodels/$MODEL_FILE" "$MODELS_DIR/$MODEL_FILE"
     chown "$REAL_USER:$REAL_USER" "$MODELS_DIR/$MODEL_FILE"
@@ -273,7 +273,7 @@ elif [[ -f "$INSTALLER_DIR/$MODEL_FILE" ]]; then
     info "Copied $MODEL_FILE → $MODELS_DIR/"
 else
     warn "Model not found in repo — copy it manually before starting services:"
-    warn "  cp seas_noise_classifier_v1.tflite $MODELS_DIR/"
+    warn "  cp seas_noise_classifier_v3.tflite $MODELS_DIR/"
 fi
 
 # =============================================================================
@@ -355,7 +355,7 @@ echo ""
 echo "  Next steps:"
 echo ""
 echo "  1. Model: if not in repo, copy it manually:"
-echo "       cp seas_noise_classifier_v1.tflite $MODELS_DIR/"
+echo "       cp seas_noise_classifier_v3.tflite $MODELS_DIR/"
 echo ""
 echo "  2. Reboot (required for I2S + UART overlays to load):"
 echo "       sudo reboot"
@@ -375,8 +375,8 @@ echo "       journalctl -u seas-envlogger -f"
 echo "       journalctl -u seas-batterydata -f"
 echo ""
 echo "  6. Update DEVICE_ID in scripts if deploying multiple nodes:"
-echo "       $SCRIPTS_DIR/inference.py      (DEVICE_ID = \"SEAS-1\")"
-echo "       $SCRIPTS_DIR/modifiedlogger.py (device = \"SEAS-1\")"
+echo "       $SCRIPTS_DIR/inference.py      (DEVICE_ID = \"SEAS-2\")"
+echo "       $SCRIPTS_DIR/modifiedlogger.py (device = \"SEAS-2\")"
 echo ""
 warn "A reboot is required for I2S and UART overlays to take effect."
 echo ""
