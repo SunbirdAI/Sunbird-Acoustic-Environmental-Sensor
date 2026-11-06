@@ -43,7 +43,6 @@ ARCH=$(uname -m)
 section "1 · System update"
 # =============================================================================
 apt-get update -y
-apt-get upgrade -y
 
 # =============================================================================
 section "2 · System packages"
@@ -169,21 +168,15 @@ VENV_PY="$VENV_DIR/bin/python3"
 sudo -u "$REAL_USER" "$VENV_PIP" install --upgrade pip wheel setuptools
 
 # =============================================================================
-section "8 · Install tflite-runtime (armv7l Bullseye wheel)"
+section "8 · Install tflite-runtime (armv7l Bullseye)"
 # =============================================================================
-# The PyPI tflite-runtime package does not publish armv7l wheels reliably.
-# We use the Google Coral / pycoral release which provides official armv7l
-# wheels for CPython 3.9 on Linux.
-TFLITE_WHEEL="https://github.com/google-coral/pycoral/releases/download/v2.0.0/tflite_runtime-2.5.0.post1-cp39-cp39-linux_armv7l.whl"
-
-info "Downloading tflite-runtime wheel for armv7l / cp39…"
-WHEEL_TMP=$(mktemp /tmp/tflite_XXXXXX.whl)
-wget -q --show-progress -O "$WHEEL_TMP" "$TFLITE_WHEEL" \
-    || error "Failed to download tflite-runtime wheel. Check internet connection."
-
-sudo -u "$REAL_USER" "$VENV_PIP" install "$WHEEL_TMP"
-rm -f "$WHEEL_TMP"
+# Google Coral index hosts official armv7l wheels for tflite-runtime on Python 3.9
+info "Installing tflite-runtime from Google Coral index..."
+sudo -u "$REAL_USER" "$VENV_PIP" install tflite-runtime \
+    --extra-index-url https://google-coral.github.io/py-repo/ \
+    || error "Failed to install tflite-runtime. Check internet connection."
 info "tflite-runtime installed."
+
 
 # =============================================================================
 section "9 · Install Python dependencies"
@@ -196,6 +189,7 @@ sudo -u "$REAL_USER" "$VENV_PIP" install \
     pyserial \
     bme680 \
     adafruit-circuitpython-pm25 \
+    adafruit-circuitpython-ina219 \
     adafruit-blinka \
     RPi.GPIO \
     sysv-ipc
@@ -223,6 +217,7 @@ mods = [
     ("serial",                      "pyserial"),
     ("bme680",                      "bme680"),
     ("adafruit_pm25",               "adafruit-circuitpython-pm25"),
+    ("adafruit_ina219",             "adafruit-circuitpython-ina219"),
     ("soundmeter",                  "soundmeter"),
 ]
 for mod, pkg in mods:
