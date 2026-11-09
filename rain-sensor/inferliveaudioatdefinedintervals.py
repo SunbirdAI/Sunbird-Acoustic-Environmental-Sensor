@@ -1,7 +1,7 @@
-"""Live rain-intensity inference on the SAES sensor.
+"""Live rain-intensity inference on the SEAS sensor.
 
 Records a short clip with arecord, extracts YAMNet embeddings with the 8-bit
-quantized YAMNet front end inside the SAES noise model
+quantized YAMNet front end inside the SEAS noise model
 (seas_noise_classifier_v1.tflite), averages them over time and classifies the
 result with rain_classifier.tflite. Uses only the TFLite interpreter
 (tflite-runtime), not the full TensorFlow package.

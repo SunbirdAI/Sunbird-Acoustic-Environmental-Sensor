@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Sunbird Acoustic Environmental Sensor (SEAS) - one-command installer
+# Sunbird Environmental Acoustic Sensor (SEAS) - one-command installer
 #
 # Target : Raspberry Pi Zero 2 W / Pi 3 / Pi 4, Raspberry Pi OS Bullseye
 #          32-bit (Python 3.9), logged in as the default user "pi".
 #
 # Usage  : sudo bash install.sh --device-id SEAS-4
-#   or   : curl -fsSL https://raw.githubusercontent.com/SunbirdAI/Sunbird-Acoustic-Environmental-Sensor/main/install.sh \
+#   or   : curl -fsSL https://raw.githubusercontent.com/SunbirdAI/seas/main/install.sh \
 #            | sudo bash -s -- --device-id SEAS-4
 #
 # Options:
@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/SunbirdAI/Sunbird-Acoustic-Environmental-Sensor"
+REPO_URL="https://github.com/SunbirdAI/seas"
 DEVICE_ID="${DEVICE_ID:-}"
 WITH_BATTERY=0
 AUTO_REBOOT=0

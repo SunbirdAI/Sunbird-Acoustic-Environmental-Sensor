@@ -1,4 +1,4 @@
-# Sunbird Acoustic Environmental Sensor (SEAS)
+# Sunbird Environmental Acoustic Sensor (SEAS)
 
 A low-cost sensor node on a Raspberry Pi Zero 2 W that measures **noise level (dB(A))**, **recognises the type of noise on the device**, and records **temperature, humidity, pressure, air quality and power**. Everything is uploaded to the Sunbird noise API. **No audio ever leaves the device.**
 
@@ -16,7 +16,7 @@ A low-cost sensor node on a Raspberry Pi Zero 2 W that measures **noise level (d
 On a Pi running Raspberry Pi OS Bullseye 32-bit, logged in as `pi`, with internet and the hardware wired ([wiring](docs/wiring.md)):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SunbirdAI/Sunbird-Acoustic-Environmental-Sensor/main/install.sh | sudo bash -s -- --device-id SEAS-4
+curl -fsSL https://raw.githubusercontent.com/SunbirdAI/seas/main/install.sh | sudo bash -s -- --device-id SEAS-4
 ```
 
 Use your own unit's name for `--device-id`. It finishes by offering to reboot. It:

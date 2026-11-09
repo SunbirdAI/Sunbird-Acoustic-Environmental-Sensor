@@ -1,6 +1,6 @@
 # Rain sensor package
 
-Scripts and model for classifying rain intensity (No Rain, Light Rain, Heavy Rain) from 5 s audio clips on the SAES sensor, as described in the associated HardwareX article.
+Scripts and model for classifying rain intensity (No Rain, Light Rain, Heavy Rain) from 5 s audio clips on the SEAS sensor, as described in the associated HardwareX article.
 
 | File | Purpose |
 |---|---|
