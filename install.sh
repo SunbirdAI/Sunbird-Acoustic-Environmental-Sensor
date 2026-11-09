@@ -1,377 +1,280 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Sunbird Acoustic Environmental Sensor (SAES) — Installer
-# Target: Raspberry Pi OS Bullseye 32-bit (armv7l, Python 3.9)
-# Usage : sudo bash install.sh
+# Sunbird Acoustic Environmental Sensor (SEAS) - one-command installer
+#
+# Target : Raspberry Pi Zero 2 W / Pi 3 / Pi 4, Raspberry Pi OS Bullseye
+#          32-bit (Python 3.9), logged in as the default user "pi".
+#
+# Usage  : sudo bash install.sh --device-id SEAS-4
+#   or   : curl -fsSL https://raw.githubusercontent.com/SunbirdAI/Sunbird-Acoustic-Environmental-Sensor/main/install.sh \
+#            | sudo bash -s -- --device-id SEAS-4
+#
+# Options:
+#   --device-id ID   Name this unit reports to the API (e.g. SEAS-4). Asked for if omitted.
+#   --with-battery   Also enable the battery monitor service (off by default, see docs).
+#   --reboot         Reboot automatically at the end (otherwise you are asked).
+#   -h, --help       Show this help.
+#
+# Safe to re-run: it updates scripts/model/services and leaves your data alone.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Colour helpers ────────────────────────────────────────────────────────────
+REPO_URL="https://github.com/SunbirdAI/Sunbird-Acoustic-Environmental-Sensor"
+DEVICE_ID="${DEVICE_ID:-}"
+WITH_BATTERY=0
+AUTO_REBOOT=0
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --device-id)    DEVICE_ID="${2:-}"; shift 2 ;;
+        --with-battery) WITH_BATTERY=1; shift ;;
+        --reboot)       AUTO_REBOOT=1; shift ;;
+        -h|--help)      sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) echo "Unknown option: $1 (try --help)" >&2; exit 1 ;;
+    esac
+done
+
+# -- Output helpers -----------------------------------------------------------
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
-info()    { echo -e "${GREEN}[INFO]${NC}  $*"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
-section() { echo -e "\n${YELLOW}━━━━  $*  ━━━━${NC}"; }
+info()    { echo -e "${GREEN}[ OK ]${NC} $*"; }
+warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error()   { echo -e "${RED}[FAIL]${NC} $*" >&2; exit 1; }
+section() { echo -e "\n${YELLOW}== $* ==${NC}"; }
 
-# ── Must run as root ──────────────────────────────────────────────────────────
-[[ $EUID -eq 0 ]] || error "Run as root: sudo bash install.sh"
+# -- Pre-flight ---------------------------------------------------------------
+[[ $EUID -eq 0 ]] || error "Run with sudo:  sudo bash install.sh --device-id SEAS-4"
 
-# ── Resolve the real user (the one who called sudo) ──────────────────────────
 REAL_USER="${SUDO_USER:-pi}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
-info "Installing for user: $REAL_USER (home: $REAL_HOME)"
+[[ "$REAL_HOME" == "/home/pi" ]] || error "The scripts expect to live in /home/pi (found $REAL_HOME). Log in as user 'pi'."
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
-REPO_DIR="$REAL_HOME/environmentsensor"
-SCRIPTS_DIR="$REPO_DIR/scripts"
-MODELS_DIR="$REPO_DIR/quantizedmodels"
-LOGS_DIR="$REPO_DIR/logs"
-BATTERY_DIR="$REPO_DIR/batterydata"
-AUDIO_DIR="$REPO_DIR/rawaudio"
-VENV_DIR="$REAL_HOME/envs/sensor-env"
+if [[ -z "$DEVICE_ID" ]]; then
+    if [[ -r /dev/tty ]]; then
+        read -r -p "Device ID for this unit (e.g. SEAS-4): " DEVICE_ID < /dev/tty
+    fi
+fi
+[[ "$DEVICE_ID" =~ ^[A-Za-z0-9_-]+$ ]] || error "Give a device ID such as SEAS-4:  --device-id SEAS-4"
 
-# Bullseye Python is 3.9; confirm
-PY_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-[[ "$PY_VER" == "3.9" ]] || warn "Expected Python 3.9 (Bullseye), found $PY_VER — tflite-runtime wheel may differ"
+[[ "$(uname -m)" == "armv7l" ]] || warn "Expected 32-bit ARM (armv7l), found $(uname -m); the tflite-runtime wheel may not exist."
+PY_VER=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+[[ "$PY_VER" == "3.9" ]] || warn "Expected Python 3.9 (Bullseye), found $PY_VER."
+curl -fsS --max-time 10 -o /dev/null https://noise-api.sunbird.ai/ || warn "Cannot reach noise-api.sunbird.ai (no internet?). Install continues; uploads will fail until it is reachable."
 
-# ── Architecture check ────────────────────────────────────────────────────────
-ARCH=$(uname -m)
-[[ "$ARCH" == "armv7l" ]] || warn "Expected armv7l (32-bit), found $ARCH"
+BASE="$REAL_HOME/environmentsensor"
+SCRIPTS_DIR="$BASE/scripts"
+MODELS_DIR="$BASE/quantizedmodels"
+MODEL_FILE="seas_noise_classifier_v3.tflite"
+info "Installing as '$REAL_USER' for device '$DEVICE_ID' into $BASE"
+
+# -- Find the repo files (next to this script, or download them) ---------------
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
+if [[ ! -f "$SRC/pi/noise_inference.py" ]]; then
+    section "Downloading the repository"
+    apt-get install -y git >/dev/null
+    SRC="$(mktemp -d)"
+    git clone --depth 1 "$REPO_URL" "$SRC"
+fi
+[[ -f "$SRC/models/$MODEL_FILE" ]] || error "Model $MODEL_FILE not found in $SRC/models"
 
 # =============================================================================
-section "1 · System update"
+section "1/8  System packages"
 # =============================================================================
 apt-get update -y
-
-# =============================================================================
-section "2 · System packages"
-# =============================================================================
 apt-get install -y \
-    python3-pip \
-    python3-venv \
-    python3-dev \
-    build-essential \
-    cmake \
-    curl \
-    wget \
-    git \
-    alsa-utils \
-    portaudio19-dev \
-    libatlas-base-dev \
-    libjpeg-dev \
-    liblapack-dev \
-    libopenblas-dev \
-    libhdf5-dev \
-    i2c-tools \
-    libi2c-dev \
-    libffi-dev \
-    libssl-dev \
-    python3-smbus \
-    python3-serial \
-    libglib2.0-dev \
-    udev
-
-info "System packages installed."
+    python3-pip python3-numpy python3-scipy python3-smbus python3-serial \
+    libsndfile1 alsa-utils i2c-tools git curl
 
 # =============================================================================
-section "3 · Enable I2C, I2S, UART interfaces"
+section "2/8  Python packages"
+# =============================================================================
+# Raspberry Pi OS points pip at piwheels, which has prebuilt 32-bit ARM wheels.
+python3 -m pip install --no-input --upgrade \
+    tflite-runtime soundfile requests bme680 \
+    adafruit-circuitpython-pm25 adafruit-circuitpython-ina219
+
+python3 - <<'PYCHECK'
+import sys
+mods = ["tflite_runtime.interpreter", "numpy", "scipy.signal", "soundfile",
+        "requests", "serial", "smbus", "bme680", "adafruit_pm25.uart"]
+bad = []
+for m in mods:
+    try:
+        __import__(m); print("   ok   ", m)
+    except Exception as e:
+        print("   MISSING", m, "-", e); bad.append(m)
+sys.exit(1 if bad else 0)
+PYCHECK
+info "Python packages ready."
+
+# =============================================================================
+section "3/8  Sensors and microphone (I2C, UART, I2S)"
 # =============================================================================
 CONFIG=/boot/config.txt
+[[ -f /boot/firmware/config.txt ]] && CONFIG=/boot/firmware/config.txt
+CONFIG_BEFORE=$(md5sum "$CONFIG")
 
-enable_overlay() {
-    local line="$1"
-    grep -qF "$line" "$CONFIG" || echo "$line" >> "$CONFIG"
-}
+add_line() { grep -qxF "$1" "$CONFIG" || echo "$1" >> "$CONFIG"; }
+add_line "dtparam=i2c_arm=on"
+add_line "dtparam=i2s=on"
+add_line "dtoverlay=googlevoicehat-soundcard"
+add_line "enable_uart=1"
+raspi-config nonint do_i2c 0 || warn "Could not enable I2C through raspi-config."
+for g in i2c audio dialout gpio spi; do
+    getent group "$g" >/dev/null && usermod -aG "$g" "$REAL_USER"
+done
+NEED_REBOOT=0
+[[ "$CONFIG_BEFORE" == "$(md5sum "$CONFIG")" ]] || NEED_REBOOT=1
 
-# I2C
-raspi-config nonint do_i2c 0
-enable_overlay "dtparam=i2c_arm=on"
-
-# UART (for battery_monitor on /dev/ttyS0 and PM2.5 on USB-UART)
-raspi-config nonint do_serial 2          # enable hardware UART, disable login shell on serial
-enable_overlay "enable_uart=1"
-
-# I2S for INMP441 microphone
-enable_overlay "dtparam=i2s=on"
-enable_overlay "dtoverlay=googlevoicehat-soundcard"
-
-info "Interfaces enabled in $CONFIG — reboot required (done at end of install)."
-
-# =============================================================================
-section "4 · ALSA config for plug:dmic_sv device alias"
-# =============================================================================
-# noise_inference.py records via: arecord -D plug:dmic_sv
-# This creates the dmic_sv PCM that googlevoicehat exposes, then wraps it
-# with the plug layer for rate conversion (44100 → device native).
-cat > /etc/asound.conf << 'ALSA_EOF'
-# SAES — ALSA configuration
-# Mono capture from the I2S MEMS microphone via googlevoicehat-soundcard overlay
-
-pcm.dmic_sv {
+# ALSA: dmic_hw (raw mic, used for dB(A)) and dmic_sv (mic with software gain, used by the classifier).
+if grep -q "dmic_sv" /etc/asound.conf 2>/dev/null; then
+    info "/etc/asound.conf already defines dmic_sv - left untouched."
+else
+    [[ -f /etc/asound.conf ]] && cp /etc/asound.conf "/etc/asound.conf.bak-$(date +%Y%m%d)"
+    cat > /etc/asound.conf <<'ALSA'
+# SEAS: I2S MEMS microphone (googlevoicehat overlay)
+pcm.dmic_hw {
     type hw
-    card 0
-    device 0
-    format S32_LE
-    rate 44100
+    card sndrpigooglevoicehat
     channels 2
+    format S32_LE
 }
-
-pcm.!default {
-    type asym
-    capture.pcm "dmic_capture"
-    playback.pcm "null"
+pcm.dmic_sv {
+    type softvol
+    slave.pcm dmic_hw
+    control {
+        name "Boost Capture Volume"
+        card sndrpigooglevoicehat
+    }
+    min_dB -3.0
+    max_dB 30.0
 }
-
-pcm.dmic_capture {
-    type plug
-    slave.pcm "dmic_sv"
-}
-
-ctl.!default {
-    type hw
-    card 0
-}
-ALSA_EOF
-
-info "ALSA config written to /etc/asound.conf"
-
-# =============================================================================
-section "5 · Add $REAL_USER to i2c, audio, dialout, gpio groups"
-# =============================================================================
-for grp in i2c audio dialout gpio spi; do
-    getent group "$grp" &>/dev/null && usermod -aG "$grp" "$REAL_USER" && info "Added $REAL_USER to $grp"
-done
-
-# =============================================================================
-section "6 · Create directory structure"
-# =============================================================================
-for d in "$SCRIPTS_DIR" "$MODELS_DIR" "$LOGS_DIR" "$BATTERY_DIR" "$AUDIO_DIR"; do
-    mkdir -p "$d"
-    chown -R "$REAL_USER:$REAL_USER" "$d"
-done
-info "Directory tree created under $REPO_DIR"
-
-# =============================================================================
-section "7 · Python virtual environment"
-# =============================================================================
-if [[ ! -d "$VENV_DIR" ]]; then
-    sudo -u "$REAL_USER" python3 -m venv "$VENV_DIR"
-    info "venv created at $VENV_DIR"
-else
-    info "venv already exists at $VENV_DIR — skipping creation"
+ALSA
+    info "Wrote /etc/asound.conf (dmic_hw, dmic_sv)."
 fi
 
-VENV_PIP="$VENV_DIR/bin/pip"
-VENV_PY="$VENV_DIR/bin/python3"
+# =============================================================================
+section "4/8  Files"
+# =============================================================================
+install -d -o "$REAL_USER" -g "$REAL_USER" "$SCRIPTS_DIR" "$MODELS_DIR" "$BASE/logs" "$BASE/batterydata"
+for f in noise_inference.py env_logger.py battery_monitor.py; do
+    install -m 755 -o "$REAL_USER" -g "$REAL_USER" "$SRC/pi/$f" "$SCRIPTS_DIR/$f"
+done
+install -m 644 -o "$REAL_USER" -g "$REAL_USER" "$SRC/models/$MODEL_FILE" "$MODELS_DIR/$MODEL_FILE"
+info "Scripts -> $SCRIPTS_DIR,  model -> $MODELS_DIR/$MODEL_FILE"
 
-sudo -u "$REAL_USER" "$VENV_PIP" install --upgrade pip wheel setuptools
+# One small config file holds the per-device settings (edit it, then restart the services).
+install -d /etc/seas
+if [[ -f /etc/seas/seas.env ]]; then
+    sed -i "s/^SEAS_DEVICE_ID=.*/SEAS_DEVICE_ID=${DEVICE_ID}/" /etc/seas/seas.env
+else
+    cat > /etc/seas/seas.env <<EOF
+# Per-device settings for the SEAS services. After editing:  sudo systemctl restart seas-env-logger seas-noise-inference
+SEAS_DEVICE_ID=${DEVICE_ID}
+# Microphone calibration: SPL = LAeq(dBFS) + this offset. 123 is PROVISIONAL (INMP441 datasheet).
+# Replace it with a value measured against a calibrator or reference meter, see docs/calibration.md.
+SEAS_CAL_OFFSET_DB=123.0
+EOF
+fi
 
 # =============================================================================
-section "8 · Install tflite-runtime (armv7l Bullseye)"
+section "5/8  Memory (512 MB swap)"
 # =============================================================================
-# Google Coral index hosts official armv7l wheels for tflite-runtime on Python 3.9
-info "Installing tflite-runtime from Google Coral index..."
-sudo -u "$REAL_USER" "$VENV_PIP" install tflite-runtime \
-    --extra-index-url https://google-coral.github.io/py-repo/ \
-    || error "Failed to install tflite-runtime. Check internet connection."
-info "tflite-runtime installed."
-
-
-# =============================================================================
-section "9 · Install Python dependencies"
-# =============================================================================
-sudo -u "$REAL_USER" "$VENV_PIP" install \
-    numpy \
-    scipy \
-    soundfile \
-    requests \
-    pyserial \
-    bme680 \
-    adafruit-circuitpython-pm25 \
-    adafruit-circuitpython-ina219 \
-    adafruit-blinka \
-    RPi.GPIO \
-    sysv-ipc
-
-# PyAudio needs portaudio19-dev (installed in step 2) — build from source inside venv
-sudo -u "$REAL_USER" "$VENV_PIP" install pyaudio
-
-# soundmeter depends on pyaudio
-sudo -u "$REAL_USER" "$VENV_PIP" install soundmeter
-
-info "Python dependencies installed."
-
-# =============================================================================
-section "10 · Verify critical imports"
-# =============================================================================
-sudo -u "$REAL_USER" "$VENV_PY" - << 'PYCHECK'
-import sys
-errors = []
-mods = [
-    ("tflite_runtime.interpreter", "tflite-runtime"),
-    ("numpy",                       "numpy"),
-    ("scipy.signal",                "scipy"),
-    ("soundfile",                   "soundfile"),
-    ("requests",                    "requests"),
-    ("serial",                      "pyserial"),
-    ("bme680",                      "bme680"),
-    ("adafruit_pm25",               "adafruit-circuitpython-pm25"),
-    ("adafruit_ina219",             "adafruit-circuitpython-ina219"),
-    ("soundmeter",                  "soundmeter"),
-]
-for mod, pkg in mods:
-    try:
-        __import__(mod)
-        print(f"  ✓  {pkg}")
-    except ImportError as e:
-        print(f"  ✗  {pkg}  — {e}")
-        errors.append(pkg)
-if errors:
-    print(f"\nFailed imports: {errors}", file=sys.stderr)
-    sys.exit(1)
-else:
-    print("\nAll imports OK.")
-PYCHECK
-
-info "Import verification passed."
-
-# =============================================================================
-section "11 · Copy application scripts"
-# =============================================================================
-# Assumes this installer lives in the repo root beside the .py files.
-INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPTS=( noise_inference.py env_logger.py battery_monitor.py )
-
-for s in "${SCRIPTS[@]}"; do
-    if [[ -f "$INSTALLER_DIR/$s" ]]; then
-        cp "$INSTALLER_DIR/$s" "$SCRIPTS_DIR/$s"
-        chown "$REAL_USER:$REAL_USER" "$SCRIPTS_DIR/$s"
-        chmod +x "$SCRIPTS_DIR/$s"
-        info "Copied $s → $SCRIPTS_DIR/"
-    else
-        warn "$s not found next to install.sh — copy it manually to $SCRIPTS_DIR/"
+if [[ -f /etc/dphys-swapfile ]]; then
+    CUR=$(awk -F= '/^CONF_SWAPSIZE/ {print $2}' /etc/dphys-swapfile)
+    if [[ "${CUR:-0}" -lt 512 ]]; then
+        cp /etc/dphys-swapfile "/etc/dphys-swapfile.bak-$(date +%Y%m%d)"
+        sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=512/' /etc/dphys-swapfile
+        dphys-swapfile swapoff || true
+        dphys-swapfile setup
+        dphys-swapfile swapon
     fi
-done
-
-# =============================================================================
-section "12 · Model placeholder"
-# =============================================================================
-MODEL_FILE="seas_noise_classifier_v3.tflite"
-if [[ -f "$INSTALLER_DIR/quantizedmodels/$MODEL_FILE" ]]; then
-    cp "$INSTALLER_DIR/quantizedmodels/$MODEL_FILE" "$MODELS_DIR/$MODEL_FILE"
-    chown "$REAL_USER:$REAL_USER" "$MODELS_DIR/$MODEL_FILE"
-    info "Copied $MODEL_FILE → $MODELS_DIR/"
-elif [[ -f "$INSTALLER_DIR/$MODEL_FILE" ]]; then
-    cp "$INSTALLER_DIR/$MODEL_FILE" "$MODELS_DIR/$MODEL_FILE"
-    chown "$REAL_USER:$REAL_USER" "$MODELS_DIR/$MODEL_FILE"
-    info "Copied $MODEL_FILE → $MODELS_DIR/"
+    echo "vm.swappiness=20" > /etc/sysctl.d/99-swappiness.conf
+    sysctl -q -p /etc/sysctl.d/99-swappiness.conf || true
+    info "Swap: $(free -m | awk '/Swap/ {print $2}') MB"
 else
-    warn "Model not found in repo — copy it manually before starting services:"
-    warn "  cp seas_noise_classifier_v3.tflite $MODELS_DIR/"
+    warn "dphys-swapfile not found; swap not changed."
 fi
 
 # =============================================================================
-section "13 · systemd services"
+section "6/8  Services"
 # =============================================================================
-EXEC_PREFIX="$VENV_DIR/bin/python3"
-
-# Helper to write a service file
-write_service() {
-    local name="$1" desc="$2" script="$3"
-    cat > "/etc/systemd/system/${name}.service" << EOF
+write_service() {   # name, description, script
+    cat > "/etc/systemd/system/$1.service" <<EOF
 [Unit]
-Description=${desc}
+Description=$2
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=simple
-User=${REAL_USER}
-WorkingDirectory=${SCRIPTS_DIR}
-ExecStart=${EXEC_PREFIX} ${SCRIPTS_DIR}/${script}
-Restart=on-failure
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
+User=$REAL_USER
+WorkingDirectory=$SCRIPTS_DIR
+EnvironmentFile=/etc/seas/seas.env
 Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 $SCRIPTS_DIR/$3
+Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOF
-    info "Service file written: /etc/systemd/system/${name}.service"
 }
-
-write_service "seas-noise-inference"   "SEAS Noise Inference & Upload"       "noise_inference.py"
-write_service "seas-env-logger"        "SEAS Environmental Data Logger"       "env_logger.py"
-write_service "seas-battery-monitor"    "SEAS Battery Monitor"                 "battery_monitor.py"
-
+write_service seas-env-logger      "SEAS environmental logger (BME680, power, dB(A))" env_logger.py
+write_service seas-noise-inference "SEAS noise classifier (on-device, no audio uploaded)" noise_inference.py
+SERVICES=(seas-env-logger seas-noise-inference)
+if [[ $WITH_BATTERY -eq 1 ]]; then
+    write_service seas-battery-monitor "SEAS battery monitor" battery_monitor.py
+    SERVICES+=(seas-battery-monitor)
+fi
 systemctl daemon-reload
+systemctl enable "${SERVICES[@]}"
+info "Enabled: ${SERVICES[*]}"
 
-for svc in seas-noise-inference seas-env-logger seas-battery-monitor; do
-    systemctl enable "$svc"
-    info "Enabled $svc (will start on next boot)"
+cat > /usr/local/bin/seas-status <<'EOF'
+#!/usr/bin/env bash
+# Quick health check for a SEAS unit.
+echo "Device : $(grep -h '^SEAS_DEVICE_ID' /etc/seas/seas.env | cut -d= -f2)"
+for s in seas-env-logger seas-noise-inference seas-battery-monitor; do
+    systemctl list-unit-files "$s.service" >/dev/null 2>&1 && printf '%-22s %s\n' "$s" "$(systemctl is-active $s)"
 done
+echo; echo "Last uploads:"
+journalctl -u seas-env-logger -u seas-noise-inference -n 400 --no-pager 2>/dev/null \
+    | grep -E 'Noise level|Inferred class|upload code|POST .* 20[01]' | tail -6
+echo; free -m | head -2; vcgencmd measure_temp
+EOF
+chmod +x /usr/local/bin/seas-status
 
 # =============================================================================
-section "14 · soundmeter PATH for systemd"
+section "7/8  Start"
 # =============================================================================
-# legacy scripts call soundmeter via absolute path /home/pi/.local/bin/soundmeter
-# which won't exist inside the venv. Create a symlink into the venv bin dir.
-SOUNDMETER_BIN="$VENV_DIR/bin/soundmeter"
-if [[ -f "$SOUNDMETER_BIN" ]]; then
-    # Also create the legacy path those scripts hard-code
-    mkdir -p "$REAL_HOME/.local/bin"
-    ln -sf "$SOUNDMETER_BIN" "$REAL_HOME/.local/bin/soundmeter" \
-        && chown -h "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/soundmeter"
-    info "Symlinked soundmeter → $REAL_HOME/.local/bin/soundmeter"
+if arecord -l 2>/dev/null | grep -qi googlevoicehat && [[ $NEED_REBOOT -eq 0 ]]; then
+    systemctl restart "${SERVICES[@]}"
+    info "Microphone present: services started."
+else
+    warn "Microphone/interfaces become available after a reboot; services start automatically then."
+    NEED_REBOOT=1
 fi
 
 # =============================================================================
-section "15 · Convenience alias (activate venv)"
+section "8/8  Done"
 # =============================================================================
-BASHRC="$REAL_HOME/.bashrc"
-if ! grep -q "sensor-env" "$BASHRC" 2>/dev/null; then
-    echo "" >> "$BASHRC"
-    echo "# SAES sensor venv" >> "$BASHRC"
-    echo "alias seas='source $VENV_DIR/bin/activate'" >> "$BASHRC"
-    chown "$REAL_USER:$REAL_USER" "$BASHRC"
-    info "Added 'seas' alias to $BASHRC (run 'seas' to activate venv)"
-fi
+cat <<EOF
 
-# =============================================================================
-section "Done — summary"
-# =============================================================================
-echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║          SAES Installation Complete                      ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
-echo ""
-echo "  Next steps:"
-echo ""
-echo "  1. Model: if not in repo, copy it manually:"
-echo "       cp seas_noise_classifier_v3.tflite $MODELS_DIR/"
-echo ""
-echo "  2. Reboot (required for I2S + UART overlays to load):"
-echo "       sudo reboot"
-echo ""
-echo "  3. After reboot, test the microphone:"
-echo "       arecord -D plug:dmic_sv -c2 -r 44100 -f S32_LE -d 3 test.wav"
-echo "       aplay test.wav"
-echo ""
-echo "  4. Start services manually to verify before relying on autostart:"
-echo "       sudo systemctl start seas-noise-inference"
-echo "       sudo systemctl start seas-env-logger"
-echo "       sudo systemctl start seas-battery-monitor"
-echo ""
-echo "  5. Check logs:"
-echo "       journalctl -u seas-noise-inference -f"
-echo "       journalctl -u seas-env-logger -f"
-echo "       journalctl -u seas-battery-monitor -f"
-echo ""
-echo "  6. Update DEVICE_ID in scripts if deploying multiple nodes:"
-echo "       $SCRIPTS_DIR/noise_inference.py (DEVICE_ID = \"SEAS-2\")"
-echo "       $SCRIPTS_DIR/env_logger.py      (device = \"SEAS-2\")"
-echo ""
-warn "A reboot is required for I2S and UART overlays to take effect."
-echo ""
+  Device ID : $DEVICE_ID   (change in /etc/seas/seas.env)
+  Check     : seas-status
+  Live logs : journalctl -u seas-env-logger -u seas-noise-inference -f
+
+  Note: the dB(A) reading uses a provisional calibration until you calibrate
+  this unit (docs/calibration.md). No audio is stored or uploaded.
+
+EOF
+if [[ $NEED_REBOOT -eq 1 ]]; then
+    if [[ $AUTO_REBOOT -eq 1 ]]; then
+        echo "Rebooting in 5 s..."; sleep 5; reboot
+    elif [[ -r /dev/tty ]]; then
+        read -r -p "Reboot now to finish setup? [Y/n] " ans < /dev/tty
+        [[ "${ans:-Y}" =~ ^[Yy] ]] && reboot || echo "Remember to reboot: sudo reboot"
+    else
+        echo "Reboot to finish setup:  sudo reboot"
+    fi
+fi

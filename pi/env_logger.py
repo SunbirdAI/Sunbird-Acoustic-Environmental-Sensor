@@ -11,6 +11,7 @@ import glob
 import logging
 import sys
 import fcntl
+import os
 import smbus
 import numpy as np
 from scipy import signal
@@ -71,6 +72,7 @@ MIC_LOCK = "/tmp/seas-mic.lock"
 
 # Record the I2S mic straight from the hardware device: no softvol gain and no
 # stereo->mono averaging (the mic is on the LEFT channel, the right one is silent).
+DEVICE_ID    = os.environ.get("SEAS_DEVICE_ID", "SEAS-2")   # set by install.sh
 MIC_DEVICE   = "dmic_hw"
 MIC_RATE     = 44100
 MIC_CHANNEL  = 0
@@ -78,7 +80,7 @@ MIC_CHANNEL  = 0
 # SPL = LAeq(dBFS) + CAL_OFFSET_DB.  PROVISIONAL, from the INMP441 datasheet
 # (-26 dBFS @ 94 dB SPL, i.e. -29 dBFS RMS -> 123 dB). Replace with a value
 # measured against a 114 dB calibrator or a reference meter (Casella).
-CAL_OFFSET_DB = 123.0
+CAL_OFFSET_DB = float(os.environ.get("SEAS_CAL_OFFSET_DB", "123.0"))
 
 def _a_weighting_sos(fs):
     """IEC 61672 A-weighting as second-order sections (bilinear transform)."""
@@ -316,7 +318,7 @@ while True:
 
         # 5. Build Payload
         payload = {
-            "device": "SEAS-2",
+            "device": DEVICE_ID,
             "temperature": temperature,
             "pressure": pressure,
             "humidity": humidity,

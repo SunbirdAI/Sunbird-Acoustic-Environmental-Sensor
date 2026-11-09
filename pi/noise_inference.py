@@ -15,7 +15,7 @@ from tflite_runtime.interpreter import Interpreter
 # — endpoints & device ID —
 AUDIO_ENDPOINT     = "https://noise-api.sunbird.ai/audio"
 INFERENCE_ENDPOINT = "https://noise-api.sunbird.ai/device_metrics/sound-inference-data/"
-DEVICE_ID          = "SEAS-2"
+DEVICE_ID          = os.environ.get("SEAS_DEVICE_ID", "SEAS-2")   # set by install.sh
 
 # ─── Feature flags ───────────────────────────────────────────────────────────
 # Audio stays on the device (edge processing only, for privacy). Clips are
